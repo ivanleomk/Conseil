@@ -1,3 +1,7 @@
 modal
 requests
-
+pydantic==2.4.2
+instructor
+pydub
+python-telegram-bot
+openai

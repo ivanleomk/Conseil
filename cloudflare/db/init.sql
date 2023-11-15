@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS Todos (
 
 DROP TABLE IF EXISTS Prompts;
 CREATE TABLE IF NOT EXISTS Prompts (
-    Message TEXT NOT NULL, 
-    Output TEXT NOT NULL, 
+    promptId INTEGER PRIMARY KEY, 
+    message TEXT NOT NULL, 
+    output TEXT NOT NULL, 
     tag TEXT
 );

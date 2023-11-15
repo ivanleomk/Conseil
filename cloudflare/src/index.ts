@@ -29,7 +29,12 @@ export interface Env {
 export default {
 	async fetch(request: Request, env: Env) {
 		const { pathname } = new URL(request.url);
+		if (pathname === '/get-logs') {
+			let sql = 'SELECT * FROM Prompts';
+			const { results } = await env.DB.prepare(sql).all();
 
+			return Response.json(results);
+		}
 		if (pathname === '/get-all') {
 			const url = new URL(request.url);
 			const completed = url.searchParams.get('completed');
@@ -43,11 +48,25 @@ export default {
 			// If you did not use `DB` as your binding name, change it here
 			return Response.json(results);
 		}
+
+		if (pathname === '/add-log') {
+			let body = await request.json();
+			const { input, output, tag } = body;
+			const sql = `
+			INSERT INTO Prompts (Message, Output, tag)
+			VALUES (?, ?, ?)
+			RETURNING *
+			`;
+
+			const response = await env.DB.prepare(sql).bind(input, output, tag).first();
+			return Response.json(response);
+		}
+
 		if (pathname === '/delete') {
 			const url = new URL(request.url);
 			const id = url.searchParams.get('id');
 
-			let sql = `DELETE FROM Todos WHERE todoId = ?`;
+			let sql = `DELETE FROM Todos WHERE todoId = ? RETURNING *`;
 			const { results } = await env.DB.prepare(sql).bind(id).all();
 			return Response.json(results);
 		}
@@ -58,11 +77,16 @@ export default {
 			const sql = `
 			INSERT INTO Todos (title, description, context, due_date)
 			VALUES (?, ?, ?, ?)
-		`;
+			RETURNING *
+			`;
 			const parsedDate = due_date ? new Date(due_date) : new Date();
-			const { results } = await env.DB.prepare(sql).bind(title, description, context, parsedDate.toUTCString()).all();
+			const response = await env.DB.prepare(sql).bind(title, description, context, parsedDate.toUTCString()).first();
 
-			return Response.json(results);
+			if (!response) {
+				throw new Error('Unable to insert new row');
+			}
+
+			return Response.json(response);
 		}
 
 		return new Response('Call /get-all to get all todos');

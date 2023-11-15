@@ -1,2 +1,3 @@
 .virtual
 /cloudflare/node_modules/*
+*/__pycache__/*

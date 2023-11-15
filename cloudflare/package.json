@@ -6,7 +6,8 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "reset-db":"wrangler d1 execute todos --file=./db/init.sql"
+    "reset-db":"wrangler d1 execute todos --file=./db/init.sql",
+    "reset-local-db":"wrangler d1 execute todos --local --file=./db/init.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230419.0",
