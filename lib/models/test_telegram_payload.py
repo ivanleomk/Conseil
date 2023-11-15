@@ -215,7 +215,7 @@ class TestCallbackModels:
           "data": "1"
       }
       """
-        sample_callback_message = CallbackQueryBody.parse_obj(
+        sample_callback_message = CallbackQueryBody.model_validate(
             json.loads(sample_query_message)
         )
 
@@ -249,7 +249,7 @@ class TestCallbackModels:
           }
         }
         """
-        parsed_query_callback = CallbackQueryMessage.parse_obj(
+        parsed_query_callback = CallbackQueryMessage.model_validate(
             json.loads(sample_callback)
         )
         assert parsed_query_callback.date == 1234
@@ -263,7 +263,7 @@ class TestCallbackModels:
             "type": "private"
         }
         """
-        parsed_chat = ChatPayload.parse_obj(json.loads(sample_chat))
+        parsed_chat = ChatPayload.model_validate(json.loads(sample_chat))
         assert parsed_chat.id == 12345
         assert parsed_chat.type == "private"
 
@@ -276,7 +276,7 @@ class TestCallbackModels:
                 "username": "FakeTelegramBot"
         }
         """
-        parsed_from = UserPayload.parse_obj(json.loads(sample_from))
+        parsed_from = UserPayload.model_validate(json.loads(sample_from))
         assert parsed_from.id == 1234
 
     def test_parsing_reply_markup(self):
@@ -292,7 +292,9 @@ class TestCallbackModels:
             ]
         }
         """
-        parsed_markup = CallbackQueryReplyMarkup.parse_obj(json.loads(sample_markup))
+        parsed_markup = CallbackQueryReplyMarkup.model_validate(
+            json.loads(sample_markup)
+        )
         assert len(parsed_markup.inline_keyboard) == 1
         assert len(parsed_markup.inline_keyboard[0]) == 1
         assert parsed_markup.inline_keyboard[0][0].callback_data == "1"

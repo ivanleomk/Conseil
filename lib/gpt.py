@@ -4,7 +4,6 @@ from datetime import datetime
 from lib.db import insert_logging
 from lib.models.gpt import Actionable
 import os
-import json
 from typing import List
 
 from lib.pydantic_helpers import serialize_items

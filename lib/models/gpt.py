@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, validator
 from datetime import datetime, timedelta
 
 
@@ -30,7 +30,7 @@ class Actionable(BaseModel):
         description="This is the due date of the actionable. If no due date is present, this should be omitted. This is a date string in the format YYYY-MM-DD (Eg.2032-04-23)",
     )
 
-    @validator("due_date", pre=True)
+    @field_validator("due_date")
     def parse_date(cls, v):
         if isinstance(v, str):
             # We try to format the date time object if it fails
