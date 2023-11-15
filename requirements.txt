@@ -5,3 +5,4 @@ instructor
 pydub
 python-telegram-bot
 openai
+pytest
