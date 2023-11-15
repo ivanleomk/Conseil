@@ -1,10 +1,16 @@
 import asyncio
+from typing import List
 from modal import Image, Stub, web_endpoint, Secret
 import fastapi
 import json
-from lib.db import delete_todo
+from lib.db import delete_todo, get_all_tasks
 from lib.gpt import generate_actionables
-from lib.models.telegram_payload import CallbackQuery, VoiceMessagePayload
+from lib.models.db import TodoItem
+from lib.models.telegram_payload import (
+    CallbackQuery,
+    TelegramMessagePayload,
+    VoiceMessagePayload,
+)
 from lib.telebot_helpers import get_bot, send_actionable_message
 from lib.whisper import transcribe_voice_message
 
@@ -45,6 +51,31 @@ async def transcribe(request: fastapi.Request):
         await transcribe_voice_message(VoiceMessagePayload.model_validate(data))
 
         return {"statusCode": 200}
+    if "message" in data and "entities" in data["message"]:
+        # We have a command call
+        parsed_payload = TelegramMessagePayload.model_validate(data)
+
+        if "/help" in parsed_payload.message.text:
+            bot = get_bot()
+            await bot.send_message(
+                chat_id=parsed_payload.message.chat.id,
+                text="Welcome to Conseil, a one stop solution for you to collect all your thoughts. To get started, simply send us a voice message and we'll be good to go.",
+            )
+            return {"status": 200}
+        elif "/outstanding" in parsed_payload.message.text:
+            # We should generate the list of todos in a list
+            todos: List[TodoItem] = get_all_tasks()
+            # Now we format everything
+            res = "*Outstanding tasks*"
+            for todo in todos:
+                res += f"\n-{todo.title} : {todo.description}\n"
+
+            bot = get_bot()
+            await bot.send_message(
+                chat_id=parsed_payload.message.chat.id, text=res, parse_mode="Markdown"
+            )
+            return {"status": 200}
+
     elif "callback_query" in data:
         print("Matching on Callback")
         # This is a callback query

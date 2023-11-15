@@ -10,7 +10,87 @@ from telegram_payload import (
     VoiceMessagePayloadBody,
     VoiceMessagePayload,
     FileQueryPayload,
+    TelegramCommandEntity,
+    TelegramMessagePayload,
+    TelegramMessageBody,
 )
+from pydantic import ValidationError
+import pytest
+
+
+class TestTelegramMessageModels:
+    test_data = {
+        "update_id": 12345,
+        "message": {
+            "message_id": 1,
+            "from": {
+                "id": 1,
+                "is_bot": False,
+                "first_name": "Test",
+                "username": "testuser",
+                "language_code": "en",
+            },
+            "chat": {
+                "id": 1,
+                "first_name": "Test",
+                "username": "testuser",
+                "type": "private",
+            },
+            "date": 1633029442,
+            "text": "/start",
+            "entities": [{"offset": 0, "length": 5, "type": "bot_command"}],
+        },
+    }
+
+    test_data_no_entity = {
+        "update_id": 12345,
+        "message": {
+            "message_id": 1,
+            "from": {
+                "id": 1,
+                "is_bot": False,
+                "first_name": "Test",
+                "username": "testuser",
+                "language_code": "en",
+            },
+            "chat": {
+                "id": 1,
+                "first_name": "Test",
+                "username": "testuser",
+                "type": "private",
+            },
+            "date": 1633029442,
+            "text": "/start",
+            "entities": [],
+        },
+    }
+
+    def test_telegram_message_empty_entity(self):
+        entity = self.test_data_no_entity
+        try:
+            TelegramMessagePayload(**entity)
+        except ValidationError as e:
+            pytest.fail(f"Validation failed with error: {e}")
+
+    def test_telegram_bot_command_entity(self):
+        entity = self.test_data["message"]["entities"][0]
+        try:
+            TelegramCommandEntity(**entity)
+        except ValidationError as e:
+            pytest.fail(f"Validation failed with error: {e}")
+
+    def test_telegram_bot_command_payload(self):
+        payload = self.test_data["message"]
+        try:
+            TelegramMessageBody(**payload)
+        except ValidationError as e:
+            pytest.fail(f"Validation failed with error: {e}")
+
+    def test_telegram_bot_command(self):
+        try:
+            TelegramMessagePayload(**self.test_data)
+        except ValidationError as e:
+            pytest.fail(f"Validation failed with error: {e}")
 
 
 class TestFilePayloadModels:
