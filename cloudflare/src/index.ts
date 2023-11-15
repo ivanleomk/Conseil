@@ -8,6 +8,8 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { addLogItem, addTodoItem, deleteTodoItem, getAllLogs, getAllTodos } from './helpers';
+
 export interface Env {
 	// Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
 	// MY_KV_NAMESPACE: KVNamespace;
@@ -26,69 +28,54 @@ export interface Env {
 	DB: D1Database;
 }
 
+const supportedRoutes = {
+	GET_LOGS: '/get-logs',
+	GET_ALL_TODOS: '/get-all',
+	ADD_LOG_ITEM: '/add-log',
+	DELETE_TODO_ITEM: '/delete',
+	ADD_TODO_ITEM: '/add',
+};
+
 export default {
 	async fetch(request: Request, env: Env) {
 		const { pathname } = new URL(request.url);
-		if (pathname === '/get-logs') {
-			let sql = 'SELECT * FROM Prompts';
-			const { results } = await env.DB.prepare(sql).all();
 
-			return Response.json(results);
+		if (pathname === supportedRoutes.GET_LOGS && request.method === 'GET') {
+			const data = await getAllLogs(env.DB);
+			return Response.json(data);
 		}
-		if (pathname === '/get-all') {
+
+		if (pathname === supportedRoutes.GET_ALL_TODOS && request.method === 'GET') {
 			const url = new URL(request.url);
 			const completed = url.searchParams.get('completed');
-			let sql = 'SELECT * FROM Todos';
-
-			if (completed) {
-				sql += ` WHERE completed = ${completed === 'y' ? 1 : 0}`;
-			}
-
-			const { results } = await env.DB.prepare(sql).all();
-			// If you did not use `DB` as your binding name, change it here
-			return Response.json(results);
+			const start = url.searchParams.get('start');
+			const end = url.searchParams.get('end');
+			const data = await getAllTodos(env.DB, completed, start, end);
+			return Response.json(data);
 		}
 
-		if (pathname === '/add-log') {
-			let body = await request.json();
-			const { input, output, tag } = body;
-			const sql = `
-			INSERT INTO Prompts (Message, Output, tag)
-			VALUES (?, ?, ?)
-			RETURNING *
-			`;
-
-			const response = await env.DB.prepare(sql).bind(input, output, tag).first();
-			return Response.json(response);
+		if (pathname === supportedRoutes.ADD_LOG_ITEM && request.method === 'POST') {
+			const data = await addLogItem(env.DB, await request.json());
+			return Response.json(data);
 		}
 
-		if (pathname === '/delete') {
+		if (pathname === supportedRoutes.DELETE_TODO_ITEM && request.method === 'POST') {
 			const url = new URL(request.url);
 			const id = url.searchParams.get('id');
 
-			let sql = `DELETE FROM Todos WHERE todoId = ? RETURNING *`;
-			const { results } = await env.DB.prepare(sql).bind(id).all();
-			return Response.json(results);
-		}
-
-		if (pathname === '/add') {
-			let body = await request.json();
-			const { title, description, context, due_date } = body;
-			const sql = `
-			INSERT INTO Todos (title, description, context, due_date)
-			VALUES (?, ?, ?, ?)
-			RETURNING *
-			`;
-			const parsedDate = due_date ? new Date(due_date) : new Date();
-			const response = await env.DB.prepare(sql).bind(title, description, context, parsedDate.toUTCString()).first();
-
-			if (!response) {
-				throw new Error('Unable to insert new row');
+			if (!id) {
+				throw new Error('A valid ID must be supplied.');
 			}
 
-			return Response.json(response);
+			const data = await deleteTodoItem(env.DB, id);
+			return Response.json(data);
 		}
 
-		return new Response('Call /get-all to get all todos');
+		if (pathname === supportedRoutes.ADD_TODO_ITEM && request.method === 'POST') {
+			const data = await addTodoItem(env.DB, await request.json());
+			return Response.json(data);
+		}
+
+		throw new Error(`Invalid Route of ${pathname} supplied. Please double check parameters supplied.`);
 	},
 };

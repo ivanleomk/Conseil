@@ -1,9 +1,28 @@
 from datetime import datetime, timedelta
-from gpt import Actionable
+from gpt import Actionable, UserQuery
 
 
-class ActionableTest:
-    def test_actionable():
+class TestUserQuery:
+    def test_user_query(self):
+        empty_payload = {}
+        only_completed_field = {"completed": "y"}
+        only_start_field = {"start": "2023-10-04"}
+
+        assert UserQuery.model_validate(empty_payload).start is None
+        assert UserQuery.model_validate(empty_payload).end is None
+        assert UserQuery.model_validate(empty_payload).completed is None
+
+        assert UserQuery.model_validate(only_completed_field).completed == "y"
+        assert UserQuery.model_validate(only_completed_field).start is None
+        assert UserQuery.model_validate(only_completed_field).end is None
+
+        assert UserQuery.model_validate(only_start_field).completed is None
+        assert UserQuery.model_validate(only_start_field).start == "2023-10-04"
+        assert UserQuery.model_validate(only_start_field).end is None
+
+
+class TestActionable:
+    def test_actionable(self):
         # Test case with valid data
         expected_date = datetime.now() + timedelta(days=7)
         valid_data = {
