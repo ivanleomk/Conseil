@@ -2,7 +2,31 @@ import os
 import requests
 from lib.models.db import TodoItem
 
-from lib.models.gpt import Actionable
+from lib.models.gpt import Actionable, UserQuery
+
+
+def get_filtered_tasks(query: UserQuery):
+    url = f"{os.environ['DB_URL']}/get-all"
+
+    if query.completed:
+        url += f"?completed={query.completed}"
+
+    if query.start:
+        url = (
+            f"{url}&start={query.start}" if "?" in url else f"{url}?start={query.start}"
+        )
+
+    if query.end:
+        url = f"{url}&end={query.end}" if "?" in url else f"{url}?end={query.end}"
+    print(f"Making url request to {url}")
+    get_request = requests.get(
+        url,
+    )
+    # We then parse everything
+    data = get_request.json()
+    parsed_items = [TodoItem(**i) for i in data]
+
+    return parsed_items
 
 
 def get_all_tasks():
@@ -55,7 +79,7 @@ def delete_todo(id: str):
     url = f"{os.environ['DB_URL']}/delete?id={id}"
     print(url)
 
-    delete = requests.get(url)
+    delete = requests.post(url)
 
     assert (
         delete.status_code == 200

@@ -1,5 +1,53 @@
-from pydantic import BaseModel, Field, field_validator, validator
+from typing import Literal, Optional, Union
+from pydantic import BaseModel, Field, field_validator, model_validator, validator
 from datetime import datetime, timedelta
+from typing_extensions import Annotated
+
+
+def check_valid_date(v: str):
+    if not v:
+        return v
+    datetime.strptime(v, "%Y-%m-%d")
+
+
+DateString = Annotated[str, check_valid_date]
+
+
+class UserQuery(BaseModel):
+    """
+    This is a simple class which encapsulates all of the necessary information to execute a simple query to answer the user's question.
+    """
+
+    start: Optional[DateString] = Field(
+        description="This is the earliest date that the user would like to see. In the event that no start date is specified, simply return null",
+        default=None,
+    )
+
+    end: Optional[DateString] = Field(
+        description="This is the latest date that the user would like to see. In the event that no end date is specified, simply return null",
+        default=None,
+    )
+
+    completed: Optional[Union[Literal["y"], Literal["n"]]] = Field(
+        description="If the user has specified he only wants to see completed tasks, this should be a 'n'. If the user woud like to see unfinished tasks, this should be a 'y'. If the user has not specified whether he wants unfinished or finished tasks, this should be Null",
+        default=None,
+    )
+
+    @model_validator(mode="after")
+    def validate_start_and_end_date(self) -> "UserQuery":
+        # Validate that start and end date, if they exist are not the same
+        if self.start and self.end:
+            if self.start == self.end:
+                raise ValueError(
+                    "Start and End cannot be the same date. There must be at least one day in between them"
+                )
+
+            start = datetime.strptime(self.start, "%Y-%m-%d")
+            end = datetime.strptime(self.end, "%Y-%m-%d")
+            if start > end:
+                raise ValueError("Start date must be before end date.")
+
+        return self
 
 
 class Actionable(BaseModel):

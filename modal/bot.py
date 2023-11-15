@@ -3,9 +3,10 @@ from typing import List
 from modal import Image, Stub, web_endpoint, Secret
 import fastapi
 import json
-from lib.db import delete_todo, get_all_tasks
-from lib.gpt import generate_actionables
+from lib.db import delete_todo, get_all_tasks, get_filtered_tasks
+from lib.gpt import generate_actionables, parse_user_message
 from lib.models.db import TodoItem
+from lib.models.gpt import UserQuery
 from lib.models.telegram_payload import (
     CallbackQuery,
     TelegramMessagePayload,
@@ -63,10 +64,36 @@ async def transcribe(request: fastapi.Request):
             )
             return {"status": 200}
         elif "/outstanding" in parsed_payload.message.text:
-            # We should generate the list of todos in a list
-            todos: List[TodoItem] = get_all_tasks()
-            # Now we format everything
             res = "*Outstanding tasks*"
+
+            # No User Query specified
+            if parsed_payload.message.text == "/outstanding":
+                todos: List[TodoItem] = get_all_tasks()
+            else:
+                user_message = parsed_payload.message.text.replace("/outstanding", "")
+                user_query: UserQuery = parse_user_message(user_message)
+                todos: List[TodoItem] = get_filtered_tasks(user_query)
+
+                res += f"\nYour query was *{user_message}*. Based on that, we identified the following Todos with the parameters"
+
+                res += "" if not user_query.start else f"\n-start={user_query.start}\n"
+                res += "" if not user_query.end else f"\n-end={user_query.end}\n"
+                res += (
+                    ""
+                    if not user_query.completed
+                    else f"\n-completed={user_query.completed}\n"
+                )
+
+            # Now we format everything
+            if not todos:
+                bot = get_bot()
+                await bot.send_message(
+                    chat_id=parsed_payload.message.chat.id,
+                    text=f"No todos were found matching the query of *{parsed_payload.message.text.replace('/outstanding', '')}*",
+                    parse_mode="Markdown",
+                )
+                return {"status": 200}
+
             for todo in todos:
                 res += f"\n-{todo.title} : {todo.description}\n"
 
@@ -86,6 +113,13 @@ async def transcribe(request: fastapi.Request):
 
         if command == "Generate Actionables":
             tasks = generate_actionables(parsed_data.callback_query.message.text)
+
+            if not tasks:
+                await get_bot().send_message(
+                    chat_id=parsed_data.callback_query.message.chat.id,
+                    text="Unable to identify any actionables",
+                )
+
             tasks_send_actionables = [
                 send_actionable_message(
                     task, parsed_data.callback_query.message.chat.id
