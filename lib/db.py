@@ -1,13 +1,26 @@
 import os
 import requests
-from lib.models.db import AddTodoResponse
+from lib.models.db import TodoItem
 
 from lib.models.gpt import Actionable
 
 
+def get_all_tasks():
+    url = f"{os.environ['DB_URL']}/get-all?completed=n"
+    get_request = requests.get(
+        url,
+    )
+    # We then parse everything
+    data = get_request.json()
+
+    # It will be a list of todos
+    parsed_items = [TodoItem(**i) for i in data]
+
+    return parsed_items
+
+
 def insert_logging(input, output, tag):
     url = f"{os.environ['DB_URL']}/add-log"
-    print(url)
 
     insert_request = requests.post(
         url,
@@ -35,7 +48,7 @@ def insert_todo(actionable: Actionable):
 
     resp = insert_request.json()
 
-    return AddTodoResponse.model_validate(resp)
+    return TodoItem.model_validate(resp)
 
 
 def delete_todo(id: str):

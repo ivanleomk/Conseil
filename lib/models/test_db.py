@@ -1,4 +1,4 @@
-from db import AddTodoResponse
+from db import TodoItem
 
 
 def test_AddTodoResponse():
@@ -12,6 +12,6 @@ def test_AddTodoResponse():
         "completed": 0,
     }
 
-    parsed_obj = AddTodoResponse.model_validate(obj)
+    parsed_obj = TodoItem.model_validate(obj)
     # Validate that Type Coercion is working nicely
     assert parsed_obj.completed is False

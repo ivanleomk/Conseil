@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 ACCEPTED_ACTIONS = Literal["Generate Actionables", "Delete Item"]
 ACCEPTED_FILETYPES = Literal["audio/ogg"]
 ACCEPTED_CHAT_TYPES = Literal["private"]
+ACCEPTED_COMMANDS = Literal["/help", "/outstanding"]
 
 
 class InlineKeyboardAction(BaseModel):
@@ -94,3 +95,23 @@ class VoiceMessagePayloadBody(BaseModel):
 class FileQueryPayload(BaseModel):
     ok: bool
     result: FileQueryPayloadBody
+
+
+class TelegramCommandEntity(BaseModel):
+    offset: int
+    command_length: int = Field(..., alias="length")
+    type: str
+
+
+class TelegramMessageBody(BaseModel):
+    message_id: int
+    from_user: UserPayload = Field(..., alias="from")
+    chat: ChatPayload
+    date: int
+    text: str
+    entities: List[TelegramCommandEntity]
+
+
+class TelegramMessagePayload(BaseModel):
+    update_id: int
+    message: TelegramMessageBody
